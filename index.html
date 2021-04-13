@@ -1,0 +1,219 @@
+<HTMl>
+    <head>
+        <title>Redux Example</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/3.7.2/redux.min.js"></script>
+    </head>
+    <body>
+        <div class="col-lg-8 mx-auto p-3 py-md-5">
+          
+            <h1>Jacob's Redux Store</h1>
+            <p class="fs-5 col-md-8">
+                Add tasks or goals with ease in this JS Webapp. 
+                This works thanks to a Redux store coded in plain 
+                JavaScript that has a state tree and pure functions 
+                that can get, modify and listen to changes to the state.
+            </p>
+        
+            <hr class="col-3 col-md-2 mb-5">
+          
+            <div class="row g-5">
+              <div class="col-lg-6">
+                  <h2>To Do List</h2>
+                <form class="p-5 bg-light border rounded-3">
+                    <div class="mb-3 ">
+                      <label for="todo" class="form-label">Add a task to your todo list</label>
+                      <input type="text" class="form-control" id="todo" >
+                    </div>
+                    <button id="todoBtn" type="submit" class="btn btn-primary">Submit</button>
+                </form>
+                <hr />
+                <ul id="todos" class="form-text"></ul>
+                </div>
+                <div class="col-lg-6">
+                    <h2>Goals List</h2>
+                <form class="p-5 bg-light border rounded-3">
+                    <div class="mb-3">
+                      <label for="goal" class="form-label">Add a goal to your goal tracker</label>
+                      <input type="text" class="form-control" id="goal">
+                    </div>
+                    <button id="goalBtn" type="submit" class="btn btn-primary">Submit</button>
+                  </form>
+                  <hr />
+                  <ul id="goals" class="form-text"></ul>
+              </div>
+            </div>
+          
+            <footer class="pt-5 my-5 text-muted border-top">
+              Created by Jacob C Thomas · © 2021
+            </footer>
+          </div>
+
+        <script>
+            function generateId () {
+                return Math.random().toString(36).substring(2) + (new Date()).getTime().toString(36);
+            }
+
+            //Library Code - now handled by Redux
+            // const createStore = (reducer) => {
+            //     //Four Parts:
+            //     //1. Create State
+            //     //2. Get State
+            //     //3. Listen for changes to the State
+            //     //4. Update the State
+
+            //     let state;
+            //     let listeners = [];
+
+            //     const getState = () => state;
+
+            //     const subscribe = (listener) => {
+            //         listeners.push(listener);
+            //         return () => {
+            //             listeners = listeners.filter((l) => l !== listener)
+            //         }
+            //     }
+
+            //     const dispatch = (action) => {
+            //         state = reducer(state, action);
+            //         listeners.forEach((listener) => listener());
+            //     }
+
+            //     return {
+            //         getState,
+            //         subscribe,
+            //         dispatch
+            //     }
+            // }
+
+            //App code
+
+            const ADD_TODO = 'ADD_TODO';
+            const REMOVE_TODO = 'REMOVE_TODO';
+            const TOGGLE_TODO = 'TOGGLE_TODO';
+            const ADD_GOAL = 'ADD_GOAL';
+            const REMOVE_GOAL = 'REMOVE_GOAL';
+
+            //action creators
+            const addTodoAction = (todo) => ({
+                type: ADD_TODO,
+                todo,
+            })
+            const removeTodoAction = (id) => ({
+                type: REMOVE_TODO,
+                id,
+            })
+            const toggleTodoAction = (id) => ({
+                type: TOGGLE_TODO,
+                id,
+            })
+            const addGoalAction = (goal) => ({
+                type: ADD_GOAL,
+                goal,
+            })
+            const removeGoalAction = (id) => ({
+                type: REMOVE_GOAL,
+                id,
+            })
+
+            //todos reducer
+            const todos = (state = [], action) => {
+                switch (action.type){
+                    case ADD_TODO:
+                        return state.concat(action.todo);
+                        break;
+                    case REMOVE_TODO:
+                        return state.filter((item) => item.id !== action.id);
+                        break;
+                    case TOGGLE_TODO:
+                        return state.map((item) => item.id !== action.id ? item:Object.assign({},item,{complete:!item.complete}));
+                        break;
+                    default:
+                        return state;
+                        break;
+                }
+            }
+
+            const goals = (state = [], action) => {
+                switch (action.type){
+                    case ADD_GOAL:
+                        return state.concat(action.goal);
+                        break;
+                    case REMOVE_GOAL:
+                        return state.filter((goal) => goal.id !== action.id);
+                        break;
+                    default:
+                        return state;
+                        break;
+                }
+            }
+
+            //no longer needed b/c Redux provides a method to combine reducers
+            // const app = (state = {}, action) => {
+            //     return {
+            //         todos : todos(state.todos,action),
+            //         goals : goals(state.goals,action)
+            //     }
+            // }
+
+            const store = Redux.createStore(Redux.combineReducers({todos,goals}));
+
+            store.subscribe(()=>{
+                console.log("The new state is",store.getState());
+                document.getElementById('goals').innerHTML = '';
+                document.getElementById('todos').innerHTML = '';
+
+                const { goals, todos } = store.getState();
+                goals.forEach(addGoalToDOM);
+                todos.forEach(addTodoToDOM);
+            })
+
+            const addTodo = (e) => {
+                e.preventDefault();
+                const input = document.getElementById('todo');
+                const name = input.value;
+                input.value = '';
+                store.dispatch(addTodoAction({name,complete: false, id : generateId()}))
+            }
+            const addGoal = (e) => {
+                e.preventDefault();
+                const input = document.getElementById('goal');
+                const name = input.value;
+                input.value = '';
+                store.dispatch(addGoalAction({name, id: generateId()}));
+            }
+
+            const createRemoveBtn = (onClick) => {
+                const btn = document.createElement("button");
+                btn.innerHTML = "x";
+                btn.addEventListener("click", onClick);
+                return btn;
+            }
+
+            document.getElementById('todoBtn').addEventListener('click', addTodo);
+            document.getElementById('goalBtn').addEventListener('click', addGoal);
+            //document.getElementById('todos').addEventListener('click', toggleTodo)
+
+            const addTodoToDOM = (todo) => {
+                const node = document.createElement('li');
+                const text = document.createTextNode(todo.name);
+                const removeBtn = createRemoveBtn(() => store.dispatch(removeTodoAction(todo.id)));
+
+                node.style.textDecoration = todo.complete ? "line-through":"none";
+                node.addEventListener('click', () => {store.dispatch(toggleTodoAction(todo.id));})
+                node.appendChild(text);
+                node.appendChild(removeBtn);
+                document.getElementById('todos').append(node);
+            }
+
+            const addGoalToDOM = (goal) => {
+                const node = document.createElement('li');
+                const text = document.createTextNode(goal.name);
+                const removeBtn = createRemoveBtn(() => store.dispatch(removeGoalAction(goal.id)));
+                node.appendChild(text);
+                node.appendChild(removeBtn);
+                document.getElementById('goals').append(node);
+            }
+        </script>
+    </body>
+</HTMl>
